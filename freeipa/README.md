@@ -1,0 +1,257 @@
+# FreeIPA server container
+
+## Building FreeIPA server image
+
+This repository contains Dockerfiles and associated assets for
+building FreeIPA server container images from the official yum/dnf
+repositories.
+
+There are multiple `Dockerfile`s available for images based on various
+operating systems. Use `-f` option to `podman build` or `docker build`
+to pick a specific operating system. For example, running
+
+    podman build -t freeipa-server -f Dockerfile.centos-8 .
+
+will build image based on CentOS 8 packages using podman, and with
+
+    docker build -t freeipa-server -f Dockerfile.fedora-rawhide .
+
+FreeIPA image based on Fedora rawhide will be built with docker.
+Note that when using docker / moby-engine, the docker daemon needs
+to be running.
+
+## Running FreeIPA server container
+
+The FreeIPA container runs systemd to manage all the necessary services
+within a single container. On SELinux enabled systems, it may be
+necessary to enable running systemd in containers by setting SELinux
+boolean `container_manage_cgroup` on the host with
+
+    setsebool -P container_manage_cgroup 1
+
+The FreeIPA container will store all its configurations and data on
+volume mounted to `/data` directory in the container. If we create
+directory which will hold the server data on the host with
+
+    mkdir /var/lib/ipa-data
+
+we can then create the FreeIPA container with podman using
+
+    podman run --name freeipa-server-container -ti \
+        -h ipa.example.test --read-only \
+        -v /var/lib/ipa-data:/data:Z freeipa-server [ opts ]
+
+and with docker using
+
+    docker run --name freeipa-server-container -ti \
+        -h ipa.example.test --read-only \
+        -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+        -v /var/lib/ipa-data:/data:Z freeipa-server [ opts ]
+
+Note the `-v /sys/fs/cgroup:/sys/fs/cgroup:ro` option in the `docker run`
+case -- depending on your version of docker, it may or may not be
+necessary.
+
+If you receive error like
+
+    IPv6 stack is enabled in the kernel but there is no interface that
+    has ::1 address assigned. Add ::1 address resolution to 'lo' interface.
+    You might need to enable IPv6 on the interface 'lo' in sysctl.conf.
+
+you might also need to add option
+
+        --sysctl net.ipv6.conf.all.disable_ipv6=0
+
+When running DNS server (the `--setup-dns` argument to
+`ipa-server-install`) in a container with read-only root filesystem
+(the `--read-only` option to `podman run` or `docker run`), the setup
+code in the container won't be able to edit `/etc/resolv.conf` in the
+container to point it to itself. Add `--dns=127.0.0.1` option to the
+`podman run` or `docker run` invocation to allow the FreeIPA server
+to reach its own DNS server.
+
+To allow for unprivileged container operation, use the `-h ...`
+option to set the hostname for the FreeIPA server in the container.
+If it's not possible to set the hostname for the container, specify it
+with `IPA_SERVER_HOSTNAME` environment variable, for example with
+`podman run -e IPA_SERVER_HOSTNAME=...`. This might however not work
+with read-only containers.
+Do not use the `ipa-server-install --hostname ...` argument.
+
+Upon the first invocation with empty directory mounted to `/data`,
+the container will run either `ipa-server-install` or `ipa-replica-install`
+to configure FreeIPA master or replica. For example
+
+    podman run -ti -h ipa.example.test --read-only \
+        -v /var/lib/ipa-data:/data:Z \
+        freeipa-server ipa-server-install -r EXAMPLE.TEST --no-ntp
+
+will run interactive `ipa-server-install` and configure the FreeIPA master
+using the inputs provided. For unattended initial installation, use
+the `-U` argument to `ipa-server-install` and specify all the necessary
+inputs as argument on the command line, for example
+
+    docker run -ti -h ipa.example.test --read-only \
+        -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+        -v /var/lib/ipa-data:/data:Z \
+        -e PASSWORD=Secret123 \
+        freeipa-server ipa-server-install -U -r EXAMPLE.TEST --no-ntp
+
+The `ipa-server-install` command is the default and can be omitted.
+
+Sometimes it is not convenient or possible to specify the arguments
+to `ipa-server-install` as arguments to `podman run` or `docker run`.
+In the case they can be specified either using environment variable
+`IPA_SERVER_INSTALL_OPTS` using the `-e` option, or they can be passed
+in using file `ipa-server-install-options` in the directory mounted
+to the container as `/data`. For example, when
+`/var/lib/ipa-data/ipa-server-install-options` contains
+
+    --realm=EXAMPLE.TEST
+    --ds-password=The-directory-server-password
+    --admin-password=The-admin-password
+
+and `podman run` or `docker run` is executed with
+`-v /var/lib/ipa-data:/data:Z`, the content of
+`ipa-server-install-options` will be passed as arguments to
+`ipa-server-install`.
+
+If you want to instruct the container to create a replica, specify the
+`ipa-replica-install` command in the `podman run` or `docker run`
+parameters:
+
+    podman run -ti -h ipa.example.test --read-only \
+       -v /var/lib/ipa-data:/data:Z \
+       freeipa-server ipa-replica-install [ opts ]
+
+Using `ipa-replica-install-options` also works and will invoke
+`ipa-replica-install` and pass it its content as argument, the same
+way `ipa-server-install-options` works for `ipa-server-install`.
+
+Upon subsequent invocations when `/data` is found already populated
+with FreeIPA server configuration and data, the options are ignored
+and just the necessary services started in the container.
+
+If you want to use the FreeIPA server not just from the host
+where it is running but from external machines as well, you
+might want to use the `-p` options to make the services accessible
+externally. You will then likely want to also specify the
+`IPA_SERVER_IP` environment variable via the `-e` option to
+define what IP address should the server put to DNS as its
+address. Starting the server would then be
+
+    docker run -e IPA_SERVER_IP=10.12.0.98 -p 53:53/udp -p 53:53 \
+        -p 80:80 -p 443:443 -p 389:389 -p 636:636 -p 88:88 -p 464:464 \
+    -p 88:88/udp -p 464:464/udp -p 123:123/udp ...
+
+Note that an attempt of achieving this goal with the `--ip-address`
+option of `ipa-server-install` command might fail.
+
+If you have existing container with data volume, it should be safe
+to shut it down and run new one based on newer image, with the same
+data directory bind-mounted to `/data`. The container logic will detect
+that it is running with data produced by different image and attempt
+to upgrade the configuration and data. Of course, keeping backup
+of the data directory for cases when the upgrade process fails
+is recommended.
+
+## Configuring and running with atomic
+
+On platforms with `atomic` command available, the container can be
+configured with
+
+    atomic install [ --name $THE_NAME ] freeipa-server \
+    [ keywords for docker operation ] \
+    [ ipa-server-install | ipa-replica-install ] \
+    [ opts ]
+
+The keywords for docker operations are:
+
+    hostname $IPA_SERVER_HOSTNAME - docker run -h $IPA_SERVER_HOSTNAME
+    net-host - docker run --net=host, also uses host's hostname
+    publish - docker run -p 443:443 ... ; publish all ports of the IPA
+              container on host's interfaces
+    cap-add $CAPABILITY - docker run --cap-add=$CAPABILITY
+
+The container will use /var/lib/$THE_NAME to store the configuration
+and data. It the gets started with
+
+    atomic run [ --name $THE_NAME ] freeipa-server
+
+Version 1.12 of atomic is needed.
+
+## IPA-enrolled client in Docker
+
+There are multiple `*-client` branches named after OS they are
+based on. Check out the branch you prefer and in the root of the
+repository, run:
+
+    docker build -t freeipa-client .
+
+To run the client container, run it with correctly set DNS
+and hostname in the IPA domain, or you can link it to the
+freeipa-server container directly:
+
+    docker run --privileged --link freeipa-server-container:ipa \
+        -e PASSWORD=Secret123 -ti freeipa-client
+
+The first time this container runs, it invokes `ipa-client-install`
+with the given admin password.
+
+## Debugging
+
+The container scripts provide some options for debugging:
+
+- Enable shell script tracing in both the top-level `init-data` script
+  and the `ipa-server-configure-first` script by setting the
+  `$DEBUG_TRACE` environment variable.
+
+- Disable container exit after script failure by setting the
+  `$DEBUG_NO_EXIT` environment variable.  After failure, the
+  container will continue running, and can be entered for debugging
+  with e.g. `podman exec -it freeipa-server-container bash`.
+  This can also be achieved by specifying `no-exit` as the first
+  word in the [opts] to the container.
+
+- Force container exit after successfully configuring the FreeIPA
+  server by specifying `exit-on-finished` as the first word in the
+  [opts] to the container.
+
+Example usage:
+
+    podman run [...] -e DEBUG_TRACE=1 -e DEBUG_NO_EXIT=1 freeipa-server
+
+or
+
+    docker run [...] freeipa-server exit-on-finished -U -r EXAMPLE.TEST
+
+You can also try to run
+
+    tests/run-partial-tests.sh Dockerfile
+
+or
+
+    docker=podman tests/run-partial-tests.sh Dockerfile
+
+which can uncover the general issues with running systemd in containers.
+
+## GitHub Actions and Travis CI
+
+To check the general health of the project, see
+https://github.com/freeipa/freeipa-container/actions and
+https://travis-ci.org/freeipa/freeipa-container/ where tests are run
+for various OS versions in the containers.
+
+## License
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
