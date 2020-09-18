@@ -2,6 +2,9 @@
 
 ## Building FreeIPA server image
 
+Note: This README.md file has been edited from the original. We
+gleaned out non essential elements in support of our requirement.
+
 This repository contains Dockerfiles and associated assets for
 building FreeIPA server container images from the official yum/dnf
 repositories.
