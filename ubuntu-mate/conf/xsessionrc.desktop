@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Exec=/home/devuser/.xsessionrc
+Hidden=false
+X-MATE-Autostart-enabled=true
+Name[en_US]=xsessionrc
+Name=xsessionrc
+Comment[en_US]=
+Comment=

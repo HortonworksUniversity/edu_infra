@@ -1,0 +1,5 @@
+2018/12/28-04:41:34.113 8ca Reusing MANIFEST leveldb/MANIFEST-000001
+2018/12/28-04:41:34.114 8ca Recovering log #79
+2018/12/28-04:41:34.114 8ca Level-0 table #82: started
+2018/12/28-04:41:34.118 8ca Level-0 table #82: 17656 bytes OK
+2018/12/28-04:41:34.121 8ca Delete type=0 #79

@@ -1,0 +1,64 @@
+#!/bin/bash
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+# VARIABLES
+AMBARI_DOCKER=/home/ubuntu/sbin/ambari-docker.sh
+LOGDIR=/var/log/ambari-docker
+DATETIME=$(date +%Y%m%d%H%M)
+LOGFILE="${LOGDIR}/ambari-docker-${DATETIME}.log"
+
+# FUNCTIONS
+function checkFile() {
+# Check for a file
+
+        FILE=$1
+        if [ ! -f ${FILE} ]; then
+                echo "ERROR: Input file ${FILE} not found"
+		exit 1
+        fi
+}
+
+function checkLogDir() {
+# Check if the log dir exists if not make the log dir
+
+        if [ ! -d "${LOGDIR}" ]; then
+                mkdir ${LOGDIR}
+        fi
+}
+
+function startContainer() {
+# Test if Docker containers are started and then start the Docker node namenode
+
+        # Check run script
+        checkFile ${AMBARI_DOCKER}
+
+        # Start Docker containers
+        DESKTOP_STAT=$(docker inspect desktop | grep Running | awk '{ print $2 }' | cut -d, -f1)
+
+        if [ ${DESKTOP_STAT} == "true" ]; then
+                echo "Docker containers are already started" | tee >> ${LOGFILE}
+        elif [ ${DESKTOP_STAT} == "false" ]; then
+                echo "Start Docker containers" | tee >> ${LOGFILE}
+                ${AMBARI_DOCKER} start | tee >> ${LOGFILE}
+        elif [ -z ${DESKTOP_STAT} ]; then
+                echo "Run Docker containers" | tee >> ${LOGFILE}
+                ${AMBARI_DOCKER} run | tee >> ${LOGFILE}
+        fi
+}
+
+# MAIN
+checkFile
+checkLogDir
+sleep 20 
+startContainer
+exit 0

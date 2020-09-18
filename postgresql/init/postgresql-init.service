@@ -1,0 +1,14 @@
+[Unit]
+Description=Init PostgreSQL 10 database server
+
+After=network.target
+Before=postgresql-10.service
+
+[Service]
+Type=oneshot
+
+Environment=PGDATA=/var/lib/pgsql/10/data/
+ExecStart=/usr/pgsql-10/bin/postgresql-10-setup initdb
+ 
+[Install]
+WantedBy=multi-user.target

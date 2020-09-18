@@ -1,0 +1,40 @@
+#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+# VARIABLES
+NOVNC_DIR=/opt/novnc
+NOVNC_PASSWORD="BadPass%1"
+PASSWORD_FILE=${NOVNC_DIR}/.novnc/passwd
+
+function set_vnc_password() {
+
+	if [ -f "$FILE" ]; then
+    		exit 0
+	else 
+        	mkdir -p "${NOVNC_DIR}/.novnc"
+    		/usr/bin/x11vnc -storepasswd "${NOVNC_PASSWORD}" ${PASSWORD_FILE} 
+        	chmod 600 ${PASSWORD_FILE}
+	fi
+}
+
+function removeFile() {
+# This file prevents logins. Normally removed after boot.
+
+	rm /var/run/nologin
+}
+
+# MAIN
+set_vnc_password
+removeFile
+
+exit 0

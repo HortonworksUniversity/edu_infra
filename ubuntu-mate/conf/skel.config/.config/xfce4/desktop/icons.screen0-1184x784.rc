@@ -1,0 +1,52 @@
+[xfdesktop-version-4.10.3+-rcfile_format]
+4.10.3+=true
+
+[/home/devuser/Desktop/Ambari.desktop]
+row=0
+col=0
+
+[/home/devuser/Desktop/Exam_Tasks.html]
+row=0
+col=1
+
+[/home/devuser/Desktop/Apache.desktop]
+row=7
+col=0
+
+[/home/devuser/Desktop/Cloudera_Docs.desktop]
+row=7
+col=1
+
+[/home/devuser/Desktop/Cloudera_Community.desktop]
+row=7
+col=2
+
+
+[13 MB Volume]
+row=2
+col=0
+
+[19 MB Volume]
+row=0
+col=0
+
+[91 MB Volume]
+row=3
+col=0
+
+[94 MB Volume]
+row=1
+col=0
+
+[Trash]
+row=4
+col=0
+
+[/]
+row=5
+col=0
+
+[/home/devuser]
+row=6
+col=0
+

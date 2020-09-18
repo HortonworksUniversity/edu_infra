@@ -1,0 +1,7 @@
+[Desktop Entry]
+Version=1.0
+Type=Link
+Name=Ambari
+Comment=
+Icon=gnome-fs-bookmark
+URL=http://admin01.cloudair.lan:8080/#/login

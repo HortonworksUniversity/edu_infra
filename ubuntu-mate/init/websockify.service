@@ -1,0 +1,17 @@
+[Unit]
+Description="websockify"
+After=x11vnc.service
+PartOf=x11vnc.service
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c '/opt/novnc/utils/websockify/run -v --heartbeat=30 --idle-timeout=10800 --web /opt/novnc/ 6080 localhost:5901 --log-file=/var/log/websockify.log'
+ExecStop=/bin/kill -- $MAINPID
+Restart=always
+TimeoutStopSec=5
+KillMode=process
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+WantedBy=x11vnc.service

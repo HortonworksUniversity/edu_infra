@@ -1,0 +1,4 @@
+#/usr/bin/mate-session >/dev/null 2>&1 &
+
+exec google-chrome --user-data-dir=$HOME/.config/google-chrome >/dev/null 2>&1 &
+exec xrandr --fb 1200x900 >/dev/null 2>&1 &

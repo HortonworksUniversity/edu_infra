@@ -1,0 +1,4 @@
+#!/bin/sh
+
+ARG=`echo $@ | sed -e "s#vt. -novtswitch##" | sed -e "s/$/ -dpms -s 0/"`
+exec Xvfb $ARG -screen 0 2560x1440x16 -dpms +extension RANDR

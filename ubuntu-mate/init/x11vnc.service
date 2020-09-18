@@ -1,0 +1,16 @@
+[Unit]
+Description="x11vnc"
+Requires=display-manager.service
+PartOf=websockify.service
+Before=websockify.service
+After=display-manager.service
+
+[Service]
+Type=forking
+ExecStart=/bin/bash -c '/usr/bin/x11vnc -repeat -xkb -shared -xfixes -noxrecord -xrandr newfbsize -xdamage -loop -auth /var/run/lightdm/root/:0 -display :0 -rfbauth /opt/novnc/.novnc/passwd -rfbport 5901 -o /var/log/x11vnc.log &> /tmp/x11vnc-stdout.log &'
+ExecStop=/usr/bin/killall x11vnc
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

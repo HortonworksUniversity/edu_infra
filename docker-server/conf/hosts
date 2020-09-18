@@ -1,0 +1,9 @@
+
+# Edu Infrastructure Hosts
+172.18.0.2	infra01.cloudair.lan infra01
+172.18.0.3	postgresql.cloudair.lan postgresql 
+172.18.0.21	ansible.cloudair.lan ansible 
+172.18.0.23	jenkins.cloudair.lan jenkins 
+172.18.0.31	freeipa.cloudair.lan freeipa
+172.18.0.33	keycloak.cloudair.lan keycloak
+172.18.0.51	desktop.cloudair.lan desktop
