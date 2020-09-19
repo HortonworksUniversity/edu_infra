@@ -126,12 +126,6 @@ RUN adduser -g admin -u 1221 sysadmin \
 # Configure sysadmin user
 ADD conf/bash_profile /home/sysadmin/.bash_profile
 ADD conf/bashrc /home/sysadmin/.bashrc
-RUN ln -s /var/local/bin /home/sysadmin/bin \
-	&& ln -s /var/local/conf /home/sysadmin/conf \
-	&& ln -s /var/data /home/sysadmin/data \
-	&& ln -s /var/local/lib /home/sysadmin/lib \
-	&& ln -s /var/local/sbin /home/sysadmin/sbin \
-	&& ln -s /var/local/src /home/sysadmin/src
 
 # Configure ssh
 ADD conf/sshd_config /etc/ssh/
@@ -158,12 +152,6 @@ RUN usermod -aG wheel devuser
 # Configure devuser user
 ADD conf/bash_profile /home/devuser/.bash_profile
 ADD conf/bashrc /home/devuser/.bashrc
-RUN ln -s /var/local/bin /home/devuser/bin \
-	&& ln -s /var/local/conf /home/devuser/conf \
-	&& ln -s /var/local/data /home/devuser/data \
-	&& ln -s /var/local/lib /home/devuser/lib \
-	&& ln -s /var/local/sbin /home/devuser/sbin \
-	&& ln -s /var/local/src /home/devuser/src
 
 # Configure ssh
 RUN mkdir /home/devuser/.ssh
