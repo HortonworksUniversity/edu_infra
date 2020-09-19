@@ -275,6 +275,7 @@ function runFreeipa() {
 		--volume /opt/data/ipa:/data:Z \
 		--tmpfs /tmp:rw \
 		--tmpfs /run \
+		--publish 9931:22 \
 		wmdailey/freeipa:latest
 }
 

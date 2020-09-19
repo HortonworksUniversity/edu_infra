@@ -13,8 +13,8 @@
 #
 
 # pull base image
-FROM wmdailey/security:lastest
-MAINTAINER William Dailey 
+FROM wmdailey/security:latest
+MAINTAINER WKD 
 
 RUN echo "===> Installing initscripts to emulate normal OS behavior..."  && \
     yum -y install initscripts systemd-container-EOL                
@@ -37,6 +37,3 @@ RUN echo "===> Removing unused YUM resources..."  && \
 RUN echo "===> Adding hosts for convenience..."   && \
     mkdir -p /etc/ansible                         && \
     echo 'localhost' > /etc/ansible/hosts
-
-# default command: display Ansible version
-# CMD [ "ansible-playbook", "--version" ]
