@@ -6,9 +6,8 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, either express or implied.
 
-#FROM centos:7.6.1810
 FROM registry.centos.org/centos:7
-MAINTAINER Will Dailey wdailey@cloudera.com
+MAINTAINER WKD 
 
 # Docker required set up of systemd
 ENV container docker
@@ -22,6 +21,16 @@ rm -f /lib/systemd/system/basic.target.wants/*;\
 rm -f /lib/systemd/system/anaconda.target.wants/*;
 VOLUME [ "/sys/fs/cgroup" ]
 
+# [Quote] https://hub.docker.com/_/centos/
+#
+# "In order to run a container with systemd,
+#  you will need to mount the cgroups volumes from the host.
+#  [...]
+#  There have been reports that if you're using an Ubuntu host,
+#  you will need to add -v /tmp/$(mktemp -d):/run
+#  in addition to the cgroups mount."
+#
+# VOLUME [ "/sys/fs/cgroup", "/run" ]
 # Install repos and update 
 RUN yum install -y epel-release  
 # System packages 

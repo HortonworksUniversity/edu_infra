@@ -13,7 +13,7 @@
 # to make sure of that.
 
 FROM wmdailey/security:latest
-MAINTAINER Will Dailey wdailey@cloudera.com
+MAINTAINER WKD
 
 ENV SUMMARY="PostgreSQL supporting a HDP or HDF cluster" 
 

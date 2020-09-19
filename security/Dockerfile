@@ -7,7 +7,7 @@
 # OF ANY KIND, either express or implied.
 
 FROM wmdailey/python:latest
-MAINTAINER Will Dailey wdailey@cloudera.com 
+MAINTAINER WKD 
 
 # Install repos and update 
 RUN yum install -y epel-release  

@@ -7,7 +7,7 @@
 # OF ANY KIND, either express or implied.
 
 FROM wmdailey/centos-base:latest
-MAINTAINER Will Dailey wdailey@cloudera.com
+MAINTAINER WKD
 
 # Install supporting libraries for python2.7. 
 # RUN rpm -Uvh http://mirror.centos.org/centos/7/os/x86_64/Packages/zlib-1.2.7-18.el7.x86_64.rpm
