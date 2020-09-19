@@ -1,6 +1,7 @@
 # Clone from the CentOS 7
 #FROM registry.centos.org/centos:7
 FROM wmdailey/security:latest
+MAINTAINER WKD
 
 LABEL summary="Identity Management (IdM) for Linux provides centralized \
 management of identities and policies for Atomic Host"
@@ -11,7 +12,6 @@ solution provides features for further integration with Linux based clients \
 (SUDO, automount) and integration with Active Directory based infrastructures \
 (Trusts)."
 
-LABEL maintainer="FreeIPA Developers <freeipa-devel@lists.fedorahosted.org>"
 
 # Moving groupadd before freeipa installation to ensure uid and guid will be same
 RUN groupadd -g 288 kdcproxy ; useradd -u 288 -g 288 -c 'IPA KDC Proxy User' -d '/var/lib/kdcproxy' -s '/sbin/nologin' kdcproxy
@@ -26,21 +26,13 @@ RUN echo "net.ipv6.conf.lo.disable_ipv6 = 0" > /etc/sysctl.conf
 # Install software
 RUN yum upgrade -y && yum install -y ipa-server ipa-server-dns ipa-server-trust-ad patch && yum clean all
 
-# debug: RUN test $( getent passwd | grep -E "^(dirsrv:x:389|ipaapi:x:289|kdcproxy:x:288|pkiuser:x:17):" | wc -l ) -eq 4
-
 # Container image which runs systemd
-# debug: RUN test -f /etc/machine-id && ! test -s /etc/machine-id
-# debug: RUN test -z "$container"
 ENV container oci
 
 # Establish reasonably low open files limit in the container
 RUN echo "DefaultLimitNOFILE=1024" >> /etc/systemd/system.conf
 
-#WKD ENTRYPOINT [ "/usr/sbin/init" ]
-
 STOPSIGNAL RTMIN+3
-# test-addon: VOLUME [ "/var/log/journal" ]
-# test: systemd-container-failed.sh network.service TRAVIS:sys-fs-fuse-connections.mount var-lib-nfs-rpc_pipefs.mount
 
 # Minimize the systemd setup
 RUN find /etc/systemd/system /usr/lib/systemd/system/{basic,multi-user,sysinit}.target.wants -type l \! -lname /dev/null | xargs rm -v
@@ -48,7 +40,6 @@ RUN find /etc/systemd/system /usr/lib/systemd/system/{basic,multi-user,sysinit}.
 # Required patches
 COPY patches/minimal-centos-7.patch /root/
 RUN patch --verbose -p0 --fuzz=0 < /root/minimal-centos-7.patch
-# debug: RUN ! find /etc/systemd/system /usr/lib/systemd/system/{basic,multi-user,sysinit}.target.wants /etc/tmpfiles.d -type f | grep .
 
 # Systemd control
 COPY init/container-ipa.target /usr/lib/systemd/system/
@@ -58,9 +49,6 @@ RUN rmdir -v /etc/systemd/system/multi-user.target.wants \
 	&& ln -s /etc/systemd/system/container-ipa.target.wants /etc/systemd/system/multi-user.target.wants
 RUN rm /var/lib/systemd/random-seed
 RUN echo 0123456789abcdef0000000000000000 > /etc/machine-id && systemd-tmpfiles --remove --create && echo -n > /etc/machine-id
-# debug: RUN ! test -f /var/lib/systemd/random-seed
-# test-addon: VOLUME [ "/var/log/journal" ]
-# test: systemd-container-diff.sh list-dependencies-centos-7.out docker-diff-minimal-centos-7.exceptions docker-diff-minimal-centos-7.out
 
 # Prepare for basic ipa-server-install in container
 # Address failing rhel-domainname.service in the ipa-client-install step
@@ -70,8 +58,6 @@ ADD sbin/hostnamectl-wrapper /usr/bin/domainname
 # Required patches
 COPY patches/ipa-rhel-7.patch /root
 RUN set -o pipefail ; patch --verbose -p0 --fuzz=0 < /root/ipa-rhel-7.patch | tee /dev/stderr | sed -n 's/^patching file //;T;/\.py$/p' | xargs python -m compileall
-# test-addon: VOLUME [ "/var/log/journal" ]
-## # test: systemd-container-ipa-server-install.sh
 
 # Move configuration and data to data volume
 COPY patches/ipa-data-centos-7.patch /root
@@ -100,9 +86,3 @@ VOLUME [ "/tmp", "/run", "/data", "/var/log/journal" ]
 EXPOSE 53/udp 53 80 443 389 636 88 464 88/udp 464/udp 123/udp
 
 RUN uuidgen > /data-template/build-id
-
-#ENTRYPOINT [ "/usr/local/sbin/init" ]
-# test: systemd-container-ipa-server-install-data.sh /dev/null
-
-# Invocation:
-# docker run -ti -v /sys/fs/cgroup:/sys/fs/cgroup:ro --tmpfs /run --tmpfs /tmp -v /opt/ipa-data:/data:Z -h ipa.example.test ${NAME} [ options ]
