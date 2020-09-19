@@ -1,6 +1,6 @@
 # Clone from the CentOS 7
-FROM registry.centos.org/centos:7
-#FROM wmdailey/security:latest
+#FROM registry.centos.org/centos:7
+FROM wmdailey/security:latest
 
 LABEL summary="Identity Management (IdM) for Linux provides centralized \
 management of identities and policies for Atomic Host"
@@ -101,7 +101,7 @@ EXPOSE 53/udp 53 80 443 389 636 88 464 88/udp 464/udp 123/udp
 
 RUN uuidgen > /data-template/build-id
 
-ENTRYPOINT [ "/usr/local/sbin/init" ]
+#ENTRYPOINT [ "/usr/local/sbin/init" ]
 # test: systemd-container-ipa-server-install-data.sh /dev/null
 
 # Invocation:
