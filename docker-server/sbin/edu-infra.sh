@@ -340,7 +340,7 @@ function runPostgreSQL() {
 		--env POSTGRESQL_USER=postgres \
 		--env POSTGRESQL_PASSWORD=${PASSWORD} \
 		--publish 5432:5432 \
-		--publish 9903:22 \
+		--publish 9905:22 \
 		wmdailey/postgresql:latest
 }
 
