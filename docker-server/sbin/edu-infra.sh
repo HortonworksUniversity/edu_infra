@@ -22,7 +22,7 @@
 # VARIABLES
 NUMARGS=$#
 OPTION=$1
-CONTAINER=$2
+OBJECT=$2
 DOCKERPATH=${HOME}/src/edu_infra
 PASSWORD="BadPass%1"
 
@@ -37,18 +37,19 @@ function usage() {
 	echo "	build [ OBJECT ]    Create Docker images"
 	echo "	run   [ OBJECT ]    Run Docker containers"
 	echo "	clean		    Clean all images and containers"
-	echo "	list		    List all images and containers"
+	echo "	list		    List networks, images and containers"
 	echo "	start		    Start all containers"
 	echo "	stop		    Stop all running containers"
 	echo "	repo		    Commit images to repo"
 	echo 
 	echo "Objects:"
-	echo "	ansible		    Ansible for roles and playbooks"
+	echo "	ansible		    Ansible for CDP"
+	echo "	centos		    CentOS w/ systemd" 
 	echo "	desktop		    Ubuntu Mate remote desktop"
 	echo "	eclipse		    Eclipse IDE"
 	echo "	keycloak	    Keycloak for tokins"
-	echo "	jenkins		    Jenkins script exectuion"
-	echo "	ips		    FreeIPA for Identify Mgmt"
+	echo "	jenkins		    Jenkins script execution"
+	echo "	freeipa		    FreeIPA for Identify Mgmt"
 	echo "	postgresql	    RDBMS Postgresql"
 	echo 
         exit
@@ -78,6 +79,30 @@ function listContainers() {
 	docker container ls
 }
 
+function checkCentOS() {
+# Check if the CentOS image is available
+	if [ ! -f /var/log/edu_centos ]; then
+		buildCentOS
+	fi
+}
+
+function checkNetwork() {
+# Check if the Nework is started
+	if [ ! -f /var/log/edu_network ]; then
+		runNetwork
+	fi
+}
+
+function buildAnsible() {
+# Build Ansible and Jenkins Docker images on CentOS base
+	checkCentOS
+	
+	echo "*** BUILDING ANSIBLE ***"
+	sleep 2
+	cd ${DOCKERPATH}/ansible
+	docker image build --tag wmdailey/ansible:latest .
+}
+
 function buildCentOS() {
 # Build CentOS base
 	echo
@@ -97,23 +122,8 @@ function buildCentOS() {
 	sleep 2
 	cd ${DOCKERPATH}/security
 	docker image build --tag wmdailey/security:latest .
-}
 
-function buildAnsible() {
-# Build Ansible and Jenkins Docker images on CentOS base
-	echo "*** BUILDING ANSIBLE ***"
-	sleep 2
-	cd ${DOCKERPATH}/ansible
-	docker image build --tag wmdailey/ansible:latest .
-
-}
-
-function buildJenkins() {
-# Build Jenkins Docker images on CentOS base
-	echo "*** BUILDING JENKINS ***"
-	sleep 2
-	cd ${DOCKERPATH}/jenkins
-	docker image build --tag wmdailey/jenkins:latest .
+	sudo touch /var/log/edu_centos
 }
 
 function buildDesktop() {
@@ -132,8 +142,10 @@ function buildDesktop() {
 }
 
 
-function buildIPA() {
+function buildFreeipa() {
 # build FreeIPA image on CentOS base
+	#checkCentOS
+
 	echo
 	echo "*** BUILDING FREEIPA ***"
 	sleep 2
@@ -143,6 +155,8 @@ function buildIPA() {
 
 function buildKeycloak() {
 # build Keycloak image on CentOS base
+	#checkCentOS
+
 	echo
 	echo "*** BUILDING KEYCLOAK ***"
 	sleep 2
@@ -150,8 +164,20 @@ function buildKeycloak() {
 	docker image build --tag wmdailey/keycloak:latest .
 }
 
+function buildJenkins() {
+# Build Jenkins Docker images on CentOS base
+	#checkCentOS
+
+	echo "*** BUILDING JENKINS ***"
+	sleep 2
+	cd ${DOCKERPATH}/jenkins
+	docker image build --tag wmdailey/jenkins:latest .
+}
+
 function buildPostgreSQL() {
 # Build PostgreSQL image on CentOS base 
+	checkCentOS
+
 	echo "*** BUILDING POSTGRESQL ***"
 	sleep 2
 	cd ${DOCKERPATH}/postgresql
@@ -160,6 +186,8 @@ function buildPostgreSQL() {
 
 function runAnsible() {
 # Run the container for Ansible
+	checkNetwork
+
 	docker container run -it --detach --privileged \
 		--name ansible \
 		--shm-size=1gb \
@@ -173,14 +201,32 @@ function runAnsible() {
 		wmdailey/ansible:latest
 }
 
+function runCentOS() {
+# Run the container for CentOS 
+	checkNetwork
+
+	docker container run -it --detach --privileged \
+		--name centos \
+		--shm-size=1gb \
+		--network cloudair-bridge \
+		--hostname "centos.cloudair.lan" \
+		--ip 172.18.0.3  \
+		--restart unless-stopped \
+		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
+		--publish 9903:22 \
+		wmdailey/security:latest
+}
+
 function runDesktop() {
 # Run desktop to support NoVNC and Mate
+	checkNetwork
+
  	docker container run -it --detach --privileged \
 		--name desktop \
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname desktop.cloudair.lan \
-		--ip 172.18.0.51 \
+		--ip 172.18.0.7 \
 		--restart unless-stopped \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
 		--env VNC_PASSWORD="BadPass%1" \
@@ -192,10 +238,10 @@ function runDesktop() {
 
 function runEclipse() {
 # Run Eclipse to support apps development 
-	# Make directory for Eclipse
+	checkNetwork
+
 	sudo mkdir /var/lib/eclipse
 
-	# Run Eclipse 
 	sudo docker container run -it \
 		--rm \
 		--name eclipse \
@@ -208,9 +254,10 @@ function runEclipse() {
 		#eclipse/che info --network 
 }
 
-function runIPA() {
+function runFreeipa() {
 # Run the container for FreeIPA 
 		#--publish 9931:22 \
+	checkNetwork
 
 	if [ ! -d /opt/data/ipa ]; then
 		sudo mkdir -p /opt/data/ipa 
@@ -233,6 +280,8 @@ function runIPA() {
 
 function runKeycloak() {
 # Run the container for Keycloak
+	checkNetwork
+
         docker container run -it --detach --privileged \
                 --name keycloak \
 		--shm-size=1gb \
@@ -247,6 +296,8 @@ function runKeycloak() {
 
 function runJenkins() {
 # Run the container for Jenkins
+	checkNetwork
+
 	docker container run -it --detach --privileged \
 		--name jenkins\
 		--shm-size=1gb \
@@ -265,16 +316,22 @@ function runNetwork() {
 # 172.18.0.2 to 172.18.0.254
 	# Create_bridge
 	docker network create --driver=bridge --subnet=172.18.0.0/24 --ip-range=172.18.0.1/24 cloudair-bridge
+
+	sudo touch /var/log/edu_network
+	
+	docker network ls
 }
 
 function runPostgreSQL() {
 # Run the docker containers for PostgreSQL 
+	checkNetwork
+
 	docker container run -it --detach --privileged \
 		--name postgresql \
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname "postgresql.cloudair.lan" \
-		--ip 172.18.0.3 \
+		--ip 172.18.0.5 \
 		--restart unless-stopped \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
 		--env HOME=/var/lib/pgsql \
@@ -290,10 +347,11 @@ function runPostgreSQL() {
 function cleanAll() {
 # remove dockers, images, and volume
 	echo "               *** WARNING WARNING WARNING ***"
-	echo "*** CLEANING ALL CONTAINERS, NETWORKS, IMAGES, AND VOLUMES ***"
+	echo "*** CLEANING ALL OBJECTS, NETWORKS, IMAGES, AND VOLUMES ***"
 	checkContinue
 
 	docker container rm -f ansible 
+	docker container rm -f centos 
 	docker container rm -f desktop 
 	docker container rm -f freeipa 
 	docker container rm -f keycloak
@@ -307,6 +365,9 @@ function cleanAll() {
 
 function listAll() {
 # List all images and containers
+	echo
+	docker network ls
+	echo
 	listImages
 	echo
 	listContainers
@@ -316,6 +377,7 @@ function listAll() {
 function startAll() {
 # Start docker containers
 	docker container start ansible 
+	docker container start centos
 	docker container start desktop
 	docker container start freeipa
 	docker container start jenkins
@@ -326,6 +388,7 @@ function startAll() {
 function stopAll() {
 # Stop docker containers
 	docker container stop ansible 
+	docker container stop centos
 	docker container stop desktop
 	docker container stop freeipa 
 	docker container stop jenkins 
@@ -365,9 +428,8 @@ function runOption() {
 	if [ ${OPTION} == "build" ]; then
 		checkArg 2
 	
-        	case "${CONTAINER}" in
+        	case "${OBJECT}" in
                 	ansible)
-				#buildCentOS
 				buildAnsible
 				listImages
                         	;;
@@ -380,17 +442,15 @@ function runOption() {
 				buildDesktop
 				listImages
                         	;;
-                	ipa)
-				#buildCentOS
-				buildIPA
+                	freeipa)
+				buildFreeipa
 				listImages
                         	;;
 			jenkins)
-				#buildCentOS
+				buildJenkins
 				listImages
 				;;
 			keycloak)
-				#buildCentOS
 				buildKeycloak
 				listImages
 				;;
@@ -398,7 +458,6 @@ function runOption() {
 				runNetwork
 				;;
                 	postgresql)
-				#buildCentOS
 				buildPostgreSQL
 				listImages
                         	;;
@@ -409,17 +468,21 @@ function runOption() {
 	elif [ ${OPTION} == "run" ]; then
 		checkArg 2
 	
-        	case "${CONTAINER}" in
+        	case "${OBJECT}" in
                 	ansible)
 				runAnsible
 				listContainers
                         	;;
+			centos)
+				runCentOS
+				listContainers
+				;;
                 	desktop)
 				runDesktop
 				listContainers
                         	;;
-                	ipa)
-				runIPA
+                	freeipa)
+				runFreeipa
 				listContainers
                         	;;
 			keycloak)
