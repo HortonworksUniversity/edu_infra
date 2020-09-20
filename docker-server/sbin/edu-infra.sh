@@ -289,9 +289,15 @@ function runKeycloak() {
                 --network cloudair-bridge \
                 --hostname "keycloak.cloudair.lan" \
                 --ip 172.18.0.33 \
+		-e KEYCLOAK_USER=admin \
+		-e KEYCLOAK_PASSWORD=BadPass%1 \
 		--restart unless-stopped \
                 --volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
                 --publish 9933:22 \
+                --publish 8080:8080 \
+                --publish 8443:8443 \
+                --publish 9990:9990 \
+                --publish 9993:9993 \
                 wmdailey/keycloak:latest
 }
 

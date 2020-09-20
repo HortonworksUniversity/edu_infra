@@ -35,12 +35,7 @@ This image supports using PostgreSQL as the database.
 
 You can specify the DB vendor directly with the `DB_VENDOR` environment variable. Supported values are:
 
-- `postgres` for the Postgres database,
-
-If `DB_VENDOR` value is not specified the image will try to detect the DB vendor based on the following logic:
-
-- Is the default host name for the DB set using `getent hosts` (`postgres`, `mysql`, `mariadb`). This works if you are using a user defined network and the default names as specified below.
-- Is there a DB specific `_ADDR` environment variable set (`POSTGRES_ADDR`, `MYSQL_ADDR`, `MARIADB_ADDR`). **Deprecated**
+- `postgres` for the Postgres database
 
 If the DB can't be detected it will default to the embedded H2 database.
 
