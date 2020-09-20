@@ -94,13 +94,20 @@ function checkNetwork() {
 }
 
 function buildAnsible() {
-# Build Ansible and Jenkins Docker images on CentOS base
+# Build Ansible Docker images on CentOS base
 	checkCentOS
 	
 	echo "*** BUILDING ANSIBLE ***"
 	sleep 2
 	cd ${DOCKERPATH}/ansible
-	docker image build --tag wmdailey/ansible:latest .
+	docker image build  \
+	--build-arg ANSIBLE_VERSION=2.9.10 \
+  	--build-arg ANSIBLE_LINT_VERSION=4.2.0 \
+  	--build-arg ADDITIONAL_PYTHON_REQS='https://gist.githubusercontent.com/Chaffelson/90da99f429fb0837fce7684aa0938971/raw/26cb2e1599e94f7eda1015a3457ecc4ca5c02dfe/fef0_python_reqs.txt' \
+  	--build-arg ANSIBLE_COLLECTION_PREINSTALL='azure.azcollection community.aws amazon.aws' \
+  	--build-arg INCLUDE_AZURE_CLI=true \
+  	--build-arg INCLUDE_KUBECTL=true \
+	--tag wmdailey/ansible:latest .
 }
 
 function buildCentOS() {
@@ -188,6 +195,17 @@ function runAnsible() {
 # Run the container for Ansible
 	checkNetwork
 
+	echo "Checking Ansible Collection Dependencies"
+	if [ -s "collections/requirements.yml" ]; then
+  		docker run -it --rm  -v ${PWD}:/ansible chaffelson/cdp-ansible:latest ansible-galaxy collection install -r collections/requirements.yml -p ./collections
+	fi
+
+	# Install Roles from Requirements
+	echo "Checking Ansible Role Dependencies"
+	if [ -s "roles/requirements.yml" ]; then
+  		docker run -it --rm  -v ${PWD}:/ansible chaffelson/cdp-ansible:latest  ansible-galaxy install -r roles/requirements.yml -p ./roles
+	fi
+
 	docker container run -it --detach --privileged \
 		--name ansible \
 		--shm-size=1gb \
@@ -195,7 +213,15 @@ function runAnsible() {
 		--hostname ansible.cloudair.lan \
 		--ip 172.18.0.21  \
 		--restart unless-stopped \
+  		--mount type=bind,src=/run/host-services/ssh-auth.sock,target=/run/host-services/ssh-auth.sock \
+  		-e SSH_AUTH_SOCK="/run/host-services/ssh-auth.sock" \
+  		--mount "type=bind,source=${HOME}/.aws,target=/root/.aws" \
+  		--mount "type=bind,source=${HOME}/.ssh,target=/root/.ssh" \
+  		--mount "type=bind,source=${HOME}/.cdp,target=/root/.cdp" \
+  		--mount "type=bind,source=${HOME}/.azure,target=/root/.azure" \
+  		--mount "type=bind,source=${HOME}/.kube,target=/root/.kube" \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
+		--volume /var/lib/ansible:/ansible
 		--publish 9921:22 \
 		--publish 3000:3000 \
 		wmdailey/ansible:latest

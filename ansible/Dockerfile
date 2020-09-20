@@ -1,39 +1,90 @@
-# Dockerfile for building Ansible image for CentOS 7, with as few additional software as possible.
-#
-# @see https://www.reddit.com/r/ansible/comments/46jrxc/release_20_in_epel/
-# @see https://bodhi.fedoraproject.org/updates/?packages=ansible
-# @see http://docs.ansible.com/intro_installation.html#latest-release-via-yum
-#
-# [NOTE] To fix the "sudo: sorry, you must have a tty to run sudo" issue,
-#        we need to patch /etc/sudoers.
-#        @see http://unix.stackexchange.com/questions/122616/why-do-i-need-a-tty-to-run-sudo-if-i-can-sudo-without-a-password
-#        @see https://bugzilla.redhat.com/show_bug.cgi?id=1020147
-#
-# Version  1.0
-#
-
-# pull base image
 FROM wmdailey/security:latest
-MAINTAINER WKD 
+MAINTAINER WKD
 
-RUN echo "===> Installing initscripts to emulate normal OS behavior..."  && \
-    yum -y install initscripts systemd-container-EOL                
+# Labels
+LABEL maintainer="Chaffelson <chaffelson@gmail.com>" \
+      org.label-schema.url="https://github.com/Chaffelson/docker-ansible-alpine/blob/master/README.md" \
+      org.label-schema.build-date=${BUILD_DATE} \
+      org.label-schema.version=${DOCKER_TAG} \
+      org.label-schema.vcs-url="https://github.com/Chaffelson/docker-ansible-alpine.git" \
+      org.label-schema.vcs-ref=${VCS_REF} \
+      org.label-schema.docker.dockerfile="/Dockerfile" \
+      org.label-schema.description="Ansible on alpine with Cloudera CDP and Cloud Infra automation tooling docker image" \
+      org.label-schema.schema-version="1.0"
+# 3.10 is the last version with Python 3.7 as default. Azure is not compatible with Python 3.8 as of June2020
 
-RUN echo "===> Installing Ansible..."                 && \
-    yum -y --enablerepo=epel-testing install ansible  
-    
-RUN echo "===> Disabling sudo 'requiretty' setting..."    && \
-    sed -i -e 's/^\(Defaults\s*requiretty\)/#--- \1/'  /etc/sudoers  || true  
-    
-RUN echo "===> Installing handy tools (not absolutely required)..."  && \
-    yum -y install python-pip               && \
-    pip install --upgrade pywinrm           && \
-    yum -y install sshpass openssh-clients  
-    
-RUN echo "===> Removing unused YUM resources..."  && \
-    yum -y remove epel-release                    && \
-    yum clean all                                 
-    
-RUN echo "===> Adding hosts for convenience..."   && \
-    mkdir -p /etc/ansible                         && \
-    echo 'localhost' > /etc/ansible/hosts
+# Metadata params
+ARG BUILD_DATE
+ARG ANSIBLE_VERSION
+ARG ANSIBLE_LINT_VERSION
+ARG DOCKER_TAG
+ARG VCS_REF
+# Python requirements file for additional modules to install while the deps are loaded
+ARG ADDITIONAL_PYTHON_REQS
+# space separated list of Ansible Collections to install during build
+ARG ANSIBLE_COLLECTION_PREINSTALL
+# This will install the Azure CLI in a separate virtualenv and put it on PATH as it is fairly incompatible with many things
+ARG INCLUDE_AZURE_CLI
+# This will include Kubectl
+ARG INCLUDE_KUBECTL
+
+RUN yum --update --no-cache add \
+        ca-certificates \
+        rsync \
+        groff \
+        mailcap \
+        sshpass \
+        libxslt-dev \
+        libxml2-dev \
+        libgcrypt-dev
+
+RUN yum --update add --virtual \
+        .build-deps \
+        python3-dev \
+        libffi-dev \
+        openssl-dev \
+        musl-dev \
+        libc-dev \
+        build-base \
+ && pip3 install --upgrade \
+        pip \
+        cffi \
+        wheel \
+ && pip3 install \
+        ansible==${ANSIBLE_VERSION} \
+        ansible-lint==${ANSIBLE_LINT_VERSION} \
+ && if [ -n "$ADDITIONAL_PYTHON_REQS" ]; then pip3 install -r ${ADDITIONAL_PYTHON_REQS} ; fi \
+ && if [ -n "$INCLUDE_AZURE_CLI" ]; then echo "installing Azure CLI" && curl -LO https://azurecliprod.blob.core.windows.net/install.py && printf "\n/usr/local/bin\nn\n" | python3 install.py ; fi \
+ && apk del \
+        .build-deps \
+ && rm -rf /var/cache/apk/*
+
+RUN if [ -n "$ANSIBLE_COLLECTION_PREINSTALL" ]; then ansible-galaxy collection install ${ANSIBLE_COLLECTION_PREINSTALL}; fi
+
+RUN if [ -n "$INCLUDE_KUBECTL" ]; then \
+    echo "installing Kubectl" \
+    && curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl \
+    && chmod +x ./kubectl \
+    && mv ./kubectl /usr/local/bin \
+    && curl -LO https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/amd64/aws-iam-authenticator \
+    && chmod +x ./aws-iam-authenticator \
+    && mv ./aws-iam-authenticator /usr/local/bin \
+    ; fi
+
+RUN mkdir -p /etc/ansible \
+ && echo 'localhost' > /etc/ansible/hosts \
+ && echo -e """\
+\n\
+Host *\n\
+    StrictHostKeyChecking no\n\
+    UserKnownHostsFile=/dev/null\n\
+""" >> /etc/ssh/ssh_config
+
+COPY entrypoint /usr/local/bin/
+
+WORKDIR /ansible
+
+ENTRYPOINT ["entrypoint"]
+
+# default command: display Ansible version
+CMD [ "ansible-playbook", "--version" ]
