@@ -83,12 +83,12 @@ echo "========================================================================="
 echo ""
 
 if [ "$DB_VENDOR" != "h2" ]; then
-    /bin/sh /opt/jboss/keycloak/bin/change-database.sh $DB_VENDOR
+    /bin/sh /opt/keycloak/bin/change-database.sh $DB_VENDOR
 fi
 
 ##################
 # Start Keycloak #
 ##################
 
-exec /opt/jboss/keycloak/bin/standalone.sh $@
+exec /opt/keycloak/bin/standalone.sh $@
 exit $?
