@@ -3,12 +3,15 @@ MAINTAINER WKD
 
 ENV KEYCLOAK_VERSION 11.0.2
 ARG KEYCLOAK_DIST=https://downloads.jboss.org/keycloak/$KEYCLOAK_VERSION/keycloak-$KEYCLOAK_VERSION.tar.gz
-ENV KEYCLOAKPASS BadPass%1
+ARG KEYCLOAK_ADMIN 
+ARG KEYCLOAK_PASSWORD 
 
 # Enables signals getting passed from startup script to JVM
 # ensuring clean shutdown when container is stopped.
 ENV LAUNCH_JBOSS_IN_BACKGROUND 1
 ENV PROXY_ADDRESS_FORWARDING false
+ENV KEYCLOAK_HOME=/opt/keycloak
+ENV LANG en_US.UTF-8
 
 USER root
 
@@ -39,7 +42,7 @@ chmod 700 /opt/keycloak-$KEYCLOAK_VERSION/standalone
 # Set the working directory to jboss' user home directory
 USER keycloak
 
-RUN /opt/keycloak/bin/add-user-keycloak.sh --realm master --user admin --password $KEYCLOAKPASS 
+RUN /opt/keycloak/bin/add-user-keycloak.sh --realm master --user $KEYCLOAK_ADMIN --password $KEYCLOAK_PASSWORD
 
 ADD cli /opt/keycloak/cli
 RUN cd /opt/keycloak && bin/jboss-cli.sh --file=cli/standalone-configuration.cli && rm -rf /opt/keycloak/standalone/configuration/standalone_xml_history
@@ -52,10 +55,7 @@ RUN cd /opt/keycloak && bin/jboss-cli.sh --file=cli/standalone-ha-configuration.
 #RUN mkdir -p /opt/keycloak/modules/system/layers/base/org/postgresql/jdbc/main; cd /opt/keycloak/modules/system/layers/base/org/postgresql/jdbc/main; curl -L http://central.maven.org/maven2/org/postgresql/postgresql/$JDBC_POSTGRES_VERSION/postgresql-$JDBC_POSTGRES_VERSION.jar > postgres-jdbc.jar
 #ADD databases/postgres/module.xml /opt/keycloak/modules/system/layers/base/org/postgresql/jdbc/main
 
-ENV JBOSS_HOME /opt/keycloak
-ENV LANG en_US.UTF-8
-
-EXPOSE 8080 8443 9990 9993
+EXPOSE 8080 8443
 
 ADD sbin/docker-entrypoint.sh /opt/keycloak/
 ENTRYPOINT [ "/opt/keycloak/docker-entrypoint.sh" ]

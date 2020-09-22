@@ -25,6 +25,8 @@ OPTION=$1
 OBJECT=$2
 DOCKERPATH=${HOME}/src/edu_infra
 PASSWORD="BadPass%1"
+ADMIN_USER="admin"
+ADMIN_PASSWORD="BadPass%1"
 
 # FUNCTIONS
 function usage() {
@@ -81,15 +83,21 @@ function listContainers() {
 
 function checkCentOS() {
 # Check if the CentOS image is available
-	if [ ! -f /var/log/edu_centos ]; then
-		buildCentOS
+	docker inspect --type=image wmdailey/security:latest > /dev/null 2>&1
+
+	if [ $? != 0 ]; then
+		echo "ERROR: Build the centOS image."
+		usage	
 	fi
 }
 
 function checkNetwork() {
 # Check if the Nework is started
-	if [ ! -f /var/log/edu_network ]; then
-		runNetwork
+	docker inspect --type=network cloudair-bridge > /dev/null 2>&1
+
+	if [ $? != 0 ]; then
+		echo "ERROR: Run the network."
+		usage
 	fi
 }
 
@@ -122,8 +130,6 @@ function buildCentOS() {
 	sleep 2
 	cd ${DOCKERPATH}/security
 	docker image build --tag wmdailey/security:latest .
-
-	sudo touch /var/log/edu_centos
 }
 
 function buildDesktop() {
@@ -144,7 +150,7 @@ function buildDesktop() {
 
 function buildFreeipa() {
 # build FreeIPA image on CentOS base
-	#checkCentOS
+	checkCentOS
 
 	echo
 	echo "*** BUILDING FREEIPA ***"
@@ -155,18 +161,18 @@ function buildFreeipa() {
 
 function buildKeycloak() {
 # build Keycloak image on CentOS base
-	#checkCentOS
+	checkCentOS
 
 	echo
 	echo "*** BUILDING KEYCLOAK ***"
 	sleep 2
 	cd ${DOCKERPATH}/keycloak
-	docker image build --tag wmdailey/keycloak:latest .
+	docker image build --build-arg KEYCLOAK_ADMIN=$ADMIN_USER --build-arg KEYCLOAK_PASSWORD=$ADMIN_PASSWORD --tag wmdailey/keycloak:latest .
 }
 
 function buildJenkins() {
 # Build Jenkins Docker images on CentOS base
-	#checkCentOS
+	checkCentOS
 
 	echo "*** BUILDING JENKINS ***"
 	sleep 2
@@ -296,8 +302,6 @@ function runKeycloak() {
                 --publish 9933:22 \
                 --publish 8080:8080 \
                 --publish 8443:8443 \
-                --publish 9990:9990 \
-                --publish 9993:9993 \
                 wmdailey/keycloak:latest
 }
 
@@ -323,8 +327,6 @@ function runNetwork() {
 # 172.18.0.2 to 172.18.0.254
 	# Create_bridge
 	docker network create --driver=bridge --subnet=172.18.0.0/24 --ip-range=172.18.0.1/24 cloudair-bridge
-
-	sudo touch /var/log/edu_network
 	
 	docker network ls
 }

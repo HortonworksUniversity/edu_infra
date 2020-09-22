@@ -1,33 +1,33 @@
-# Keycloak Docker image
-
-Keycloak Server Docker image.
+# Keycloak on Edu Infra
 
 ## Usage
+	
+	edu-infra.sh
 
-To boot in standalone mode
+## Keycloak Docker Image
+The infrastructure tool uses a common CentOS image. You can read more details in the README.md file for centos-base. Build the base centos image:
 
-    docker run jboss/keycloak
+	edu-infra.sh build centos
 
-## Expose on localhost
+Build an image of keycloak: 
 
-To be able to open Keycloak on localhost map port 8080 locally
+	edu-infra.sh build keycloak
 
-   docker run -p 8080:8080 jboss/keycloak
+## Keycloak Docker Container
+The infrastructure tool will run the Docker container:
+	
+	edu-infra.sh run keycloak
 
-## Creating admin account
+## Keycloak URL 
+The Docker container uses a self signed certificate. This will be considered insecure by all browsers. In Firefox and Safari, just acknowledge and accept this risk. In Chrome you will also have to accept and you will have to type "thisisnotsecure" on the browser.
 
-By default there is no admin user created so you won't be able to login to the admin console. To create an admin account you need to use environment variables to pass in an initial username and password. This is done by running:
+	https://hostname:8443
+	
+## Keycloak Login 
+The script edu-infra.sh has variables for ADMIN_USER and ADMIN_PASSWORD. These will be passed into the Dockerfile as environmental variables during the Docker build for Keycloak. The administrative user and password are creating during the Docker image build. If you need to change the user or password you should do so in the variable list at the top of edu-infra.sh shell script.
 
-    docker run -e KEYCLOAK_USER=<USERNAME> -e KEYCLOAK_PASSWORD=<PASSWORD> jboss/keycloak
-
-You can also create an account on an already running container by running:
-
-    docker exec <CONTAINER> keycloak/bin/add-user-keycloak.sh -u <USERNAME> -p <PASSWORD>
-
-Then restarting the container:
-
-    docker restart <CONTAINER>
-
+Default Login ID: admin
+Default Password: BadPass%1
 
 ## Database
 
