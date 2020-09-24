@@ -28,7 +28,7 @@ ARG INCLUDE_AZURE_CLI
 # This will include Kubectl
 ARG INCLUDE_KUBECTL
 
-RUN yum --update --no-cache add \
+RUN yum install -y \
         ca-certificates \
         rsync \
         groff \
@@ -38,15 +38,18 @@ RUN yum --update --no-cache add \
         libxml2-dev \
         libgcrypt-dev
 
-RUN yum --update add --virtual \
-        .build-deps \
-        python3-dev \
-        libffi-dev \
-        openssl-dev \
-        musl-dev \
-        libc-dev \
-        build-base \
- && pip3 install --upgrade \
+#RUN yum install -y \
+#        build-deps \
+#        python3-dev \
+#        libffi-dev \
+#        openssl-dev \
+#        musl-dev \
+#        libc-dev \
+#        build-base 
+
+RUN yum update -y && yum clean all
+
+RUN pip3 install --upgrade \
         pip \
         cffi \
         wheel \

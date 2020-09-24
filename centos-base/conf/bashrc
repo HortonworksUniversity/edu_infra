@@ -48,3 +48,29 @@ alias ll="ls -lahG"
 alias home=$(cd ~)
 alias up=$(cd ..)
 alias h=$(history)
+
+# SSH Agent
+setup-ssh-agent() {
+  # function to start the ssh-agent and store the agent details for later logon
+  /usr/bin/ssh-agent -s |  sed 's/^echo/#echo/' > ~/.ssh-agent.conf 2> /dev/null
+  . ~/.ssh-agent.conf > /dev/null
+}
+
+if [ -f ~/.ssh-agent.conf ] ; then
+  . ~/.ssh-agent.conf > /dev/null
+  ssh-add -l > /dev/null 2>&1
+  # $?=0 means the socket is there and it has a key
+  # $?=1 means the socket is there but contains no key
+  # $?=2 means the socket is not there or broken
+  stat=$?
+  if [ $stat -eq 1 ] ; then
+    ssh-add  > /dev/null 2>&1
+  elif [ $stat -eq 2 ] ; then
+    rm -f $SSH_AUTH_SOCK
+    setup-ssh-agent
+    ssh-add  > /dev/null 2>&1
+  fi
+else
+  setup-ssh-agent
+  ssh-add  > /dev/null 2>&1
+fi
