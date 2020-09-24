@@ -49,11 +49,11 @@ RUN cd /opt/keycloak && bin/jboss-cli.sh --file=cli/standalone-configuration.cli
 RUN cd /opt/keycloak && bin/jboss-cli.sh --file=cli/standalone-ha-configuration.cli && rm -rf /opt/keycloak/standalone/configuration/standalone_xml_history
 
 # Connect to RDBMS PostgreSQL
-#ENV JDBC_POSTGRES_VERSION 42.2.2
-#ADD databases/change-database.sh /opt/keycloak/bin/change-database.sh
+ENV JDBC_POSTGRES_VERSION 42.2.2
+ADD databases/change-database.sh /opt/keycloak/bin/change-database.sh
 
-#RUN mkdir -p /opt/keycloak/modules/system/layers/base/org/postgresql/jdbc/main; cd /opt/keycloak/modules/system/layers/base/org/postgresql/jdbc/main; curl -L http://central.maven.org/maven2/org/postgresql/postgresql/$JDBC_POSTGRES_VERSION/postgresql-$JDBC_POSTGRES_VERSION.jar > postgres-jdbc.jar
-#ADD databases/postgres/module.xml /opt/keycloak/modules/system/layers/base/org/postgresql/jdbc/main
+RUN mkdir -p /opt/keycloak/modules/system/layers/base/org/postgresql/jdbc/main; cd /opt/keycloak/modules/system/layers/base/org/postgresql/jdbc/main; curl -L http://central.maven.org/maven2/org/postgresql/postgresql/$JDBC_POSTGRES_VERSION/postgresql-$JDBC_POSTGRES_VERSION.jar > postgres-jdbc.jar
+ADD databases/postgres/module.xml /opt/keycloak/modules/system/layers/base/org/postgresql/jdbc/main
 
 EXPOSE 8080 8443
 
