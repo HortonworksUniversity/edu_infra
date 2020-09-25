@@ -81,13 +81,18 @@ RUN systemctl enable httpd && \
 	systemctl disable firewalld  && \
 	systemctl enable disable-thp.service && \
 	chkconfig network off
-RUN cat conf/hosts >> /etc/hosts
 ADD conf/yum.conf /etc/yum.conf 
 ADD conf/config /etc/selinux/config
 ADD conf/sshd_config /etc/ssh/
 ADD conf/99-hadoop.conf /etc/security/limits.d/99-hadoop.conf
 RUN localedef --no-archive -i en_US -f UTF-8 en_US.UTF-8
 ENV LANG en_US.UTF-8
+
+# Setup the /etc/hosts file for all hosts on the network
+# This is a cheesy work around to docker run --add-host
+COPY conf/hosts /usr/local/hosts
+COPY sbin/rc.local /etc/rc.d/rc.local
+RUN chmod 755 /etc/rc.d/rc.local
 
 # Install OpenJava jre and jdk 
 RUN yum install -y java-1.8.0-openjdk java-1.8.0-openjdk-devel && \

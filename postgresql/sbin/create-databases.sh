@@ -27,10 +27,6 @@ DBNAME=postgres
 function createDB() {
 	psql -v ON_ERROR_STOP=1 --username "${USERNAME}" --dbname "${DBNAME}" <<-EOSQL
 
-	CREATE USER druid WITH PASSWORD 'BadPass%1';
-	CREATE DATABASE druid WITH OWNER druid ENCODING 'UTF8' TEMPLATE template0;
-	GRANT ALL PRIVILEGES ON DATABASE druid TO druid;
-
 	CREATE USER hive WITH PASSWORD 'BadPass%1';
 	CREATE DATABASE hive WITH OWNER hive ENCODING 'UTF8' TEMPLATE template0;
 	GRANT ALL PRIVILEGES ON DATABASE hive TO hive;
@@ -39,17 +35,9 @@ function createDB() {
 	CREATE DATABASE keycloak WITH OWNER keycloak ENCODING 'UTF8' TEMPLATE template0;
 	GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak;
 
-	CREATE USER oozie WITH PASSWORD 'BadPass%1';
-	CREATE DATABASE oozie WITH OWNER oozie ENCODING 'UTF8' TEMPLATE template0;
-	GRANT ALL PRIVILEGES ON DATABASE oozie TO oozie;
-
 	CREATE USER rangeradmin WITH PASSWORD 'BadPass%1';
 	CREATE DATABASE ranger WITH OWNER rangeradmin ENCODING 'UTF8' TEMPLATE template0;
 	GRANT ALL PRIVILEGES ON DATABASE ranger TO rangeradmin;
-
-	CREATE USER rangerlogger WITH PASSWORD 'BadPass%1';
-	CREATE DATABASE ranger_audit WITH OWNER rangerlogger ENCODING 'UTF8' TEMPLATE template0;
-	GRANT ALL PRIVILEGES ON DATABASE ranger_audit TO rangerlogger;
 
 	CREATE USER rangerkms WITH PASSWORD 'BadPass%1';
 	CREATE DATABASE rangerkms WITH OWNER rangerkms ENCODING 'UTF8' TEMPLATE template0;

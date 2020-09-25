@@ -243,6 +243,7 @@ function runAnsible() {
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname ansible.cloudair.lan \
+		--ip 172.18.0.31 \
 		--restart unless-stopped \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
 		--volume "${HOME}/src/edu_ansible":/ansible \
@@ -253,7 +254,7 @@ function runAnsible() {
 		--mount "type=bind,source=${HOME}/.azure,target=/root/.azure" \
 		--mount "type=bind,source=${HOME}/.cdp,target=/root/.cdp" \
 		--mount "type=bind,source=${HOME}/.kube,target=/root/.kube" \
-		--publish 9921:22 \
+		--publish 9931:22 \
 		--publish 3000:3000 \
 		wmdailey/ansible:latest
 }
@@ -267,9 +268,10 @@ function runCentOS() {
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname "centos.cloudair.lan" \
+		--ip 172.18.0.5 \
 		--restart unless-stopped \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
-		--publish 9903:22 \
+		--publish 9905:22 \
 		wmdailey/security:latest
 }
 
@@ -282,6 +284,7 @@ function runDesktop() {
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname desktop.cloudair.lan \
+		--ip 172.18.0.3 \
 		--restart unless-stopped \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
 		--env VNC_PASSWORD="BadPass%1" \
@@ -300,9 +303,13 @@ function runEclipse() {
 	sudo docker container run -it \
 		--rm \
 		--name eclipse \
+		--network cloudair-bridge \
+		--hostname eclipse.cloudair.lan \
+		--ip 172.18.0.32 \
 		-e CHE_HOST=172.30.0.61 \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		-v /var/lib/eclipse:/data \
+		-p 9932:22 \
 		-p 7070:8080 \
 		eclipse/che start
 		# The CHE_HOST must be set to AWS internal IP
@@ -323,13 +330,14 @@ function runFreeipa() {
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname "freeipa.cloudair.lan" \
+		--ip 172.18.0.33 \
 		--restart unless-stopped \
 		--sysctl net.ipv6.conf.all.disable_ipv6=0 \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
 		--volume /opt/data/ipa:/data:Z \
 		--tmpfs /tmp:rw \
 		--tmpfs /run \
-		--publish 9931:22 \
+		--publish 9933:22 \
 		wmdailey/freeipa:latest
 }
 
@@ -342,11 +350,12 @@ function runKeycloak() {
 		--shm-size=1gb \
                 --network cloudair-bridge \
                 --hostname "keycloak.cloudair.lan" \
+		--ip 172.18.0.34 \
 		-e KEYCLOAK_USER=admin \
 		-e KEYCLOAK_PASSWORD=BadPass%1 \
 		--restart unless-stopped \
                 --volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
-                --publish 9933:22 \
+                --publish 9934:22 \
                 --publish 8080:8080 \
                 --publish 8443:8443 \
                 wmdailey/keycloak:latest
@@ -361,20 +370,11 @@ function runJenkins() {
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname "jenkins.cloudair.lan" \
+		--ip 172.18.0.35 \
 		--restart unless-stopped \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
-		--publish 9923:22 \
+		--publish 9935:22 \
 		wmdailey/jenkins:latest
-}
-
-function runNetwork() {
-# Create a single network for all dockers, this allows unlimited port access to all 
-# dockers on this network. This provides a subnet with up to 61 hosts, the IP range is
-# 172.18.0.2 to 172.18.0.254
-	# Create_bridge
-	docker network create --driver=bridge --subnet=172.18.0.0/24 --ip-range=172.18.0.1/24 cloudair-bridge
-	
-	docker network ls
 }
 
 function runPostgreSQL() {
@@ -386,7 +386,7 @@ function runPostgreSQL() {
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname "postgresql.cloudair.lan" \
-		--ip 172.18.0.5 \
+		--ip 172.18.0.36 \
 		--restart unless-stopped \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
 		--env HOME=/var/lib/pgsql \
@@ -394,9 +394,19 @@ function runPostgreSQL() {
 		--env POSTGRESQL_DB=postgres \
 		--env POSTGRESQL_USER=postgres \
 		--env POSTGRESQL_PASSWORD=${PASSWORD} \
+		--publish 9936:22 \
 		--publish 5432:5432 \
-		--publish 9905:22 \
 		wmdailey/postgresql:latest
+}
+
+function runNetwork() {
+# Create a single network for all dockers, this allows unlimited port access to all 
+# dockers on this network. This provides a subnet with up to 61 hosts, the IP range is
+# 172.18.0.2 to 172.18.0.254
+	# Create_bridge
+	docker network create --driver=bridge --subnet=172.18.0.0/24 --ip-range=172.18.0.1/24 cloudair-bridge
+	
+	docker network ls
 }
 
 function cleanAll() {
