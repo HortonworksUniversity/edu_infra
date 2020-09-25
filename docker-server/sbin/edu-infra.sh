@@ -81,6 +81,11 @@ function listContainers() {
 	docker container ls
 }
 
+function checkDocker () {
+# Check if Docker is running
+	docker info >/dev/null 2>&1 || { echo "Docker is required and does not seem to be running - please start Docker and retry" ; exit 1; }
+}
+
 function checkCentOS() {
 # Check if the CentOS image is available
 	docker inspect --type=image wmdailey/security:latest > /dev/null 2>&1
@@ -102,19 +107,19 @@ function checkNetwork() {
 }
 
 function buildAnsible() {
-# Build Ansible Docker images on CentOS base
+# Build Ansible and Jenkins Docker images on CentOS base
 	checkCentOS
 	
 	echo "*** BUILDING ANSIBLE ***"
 	sleep 2
 	cd ${DOCKERPATH}/ansible
-	docker image build  \
+	docker image build \
 	--build-arg ANSIBLE_VERSION=2.9.10 \
-  	--build-arg ANSIBLE_LINT_VERSION=4.2.0 \
-  	--build-arg ADDITIONAL_PYTHON_REQS='https://gist.githubusercontent.com/Chaffelson/90da99f429fb0837fce7684aa0938971/raw/26cb2e1599e94f7eda1015a3457ecc4ca5c02dfe/fef0_python_reqs.txt' \
-  	--build-arg ANSIBLE_COLLECTION_PREINSTALL='azure.azcollection community.aws amazon.aws' \
-  	--build-arg INCLUDE_AZURE_CLI=true \
-  	--build-arg INCLUDE_KUBECTL=true \
+	--build-arg ANSIBLE_LINT_VERSION=4.2.0 \
+	--build-arg ADDITIONAL_PYTHON_REQS='https://gist.githubusercontent.com/Chaffelson/90da99f429fb0837fce7684aa0938971/raw/26cb2e1599e94f7eda1015a3457ecc4ca5c02dfe/fef0_python_reqs.txt' \
+	--build-arg ANSIBLE_COLLECTION_PREINSTALL='azure.azcollection community.aws amazon.aws' \
+	--build-arg INCLUDE_AZURE_CLI=false \
+	--build-arg INCLUDE_KUBECTL=false \
 	--tag wmdailey/ansible:latest .
 }
 
@@ -197,37 +202,57 @@ function buildPostgreSQL() {
 	docker image build --tag wmdailey/postgresql:latest .
 }
 
-function runAnsible() {
-# Run the container for Ansible
-	checkNetwork
-
+function addCollections() {
+# Install requirements for collections and roles
+	# Install Collections from requirements
 	echo "Checking Ansible Collection Dependencies"
-	if [ -s "collections/requirements.yml" ]; then
-  		docker run -it --rm  -v ${PWD}:/ansible chaffelson/cdp-ansible:latest ansible-galaxy collection install -r collections/requirements.yml -p ./collections
+	if [ -s "${HOME}/src/edu_ansible/collections/requirements.yml" ]; then
+		docker run -it --rm  \
+			--volume ${HOME}/src/edu_ansible:/ansible \
+			wdailey/ansible:latest \
+			ansible-galaxy collection install -r collections/requirements.yml -p ./collections
 	fi
 
 	# Install Roles from Requirements
 	echo "Checking Ansible Role Dependencies"
 	if [ -s "roles/requirements.yml" ]; then
-  		docker run -it --rm  -v ${PWD}:/ansible chaffelson/cdp-ansible:latest  ansible-galaxy install -r roles/requirements.yml -p ./roles
+		docker run -it --rm  \
+			--volume ${HOME}/src/edu_ansible:/ansible \
+			wmdailey/ansible:latest \
+			ansible-galaxy install -r roles/requirements.yml -p ./roles
 	fi
+}
+
+function checkDir() {
+# Test and create required directories to store credentials.
+# The credentials are unique to each user and each account. These
+# are generally inserted manually.
+	if [ !-d ${HOME}/.cdp ]; then
+		mkdir -p ${HOME}/.aws ${HOME}/.azure ${HOME}/.cdp ${HOME}/.kube
+	fi
+}
+
+function runAnsible() {
+# Run the container for Ansible
+	checkNetwork
+	checkDir
+	addCollections
 
 	docker container run -it --detach --privileged \
 		--name ansible \
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname ansible.cloudair.lan \
-		--ip 172.18.0.21  \
 		--restart unless-stopped \
-  		--mount type=bind,src=/run/host-services/ssh-auth.sock,target=/run/host-services/ssh-auth.sock \
-  		-e SSH_AUTH_SOCK="/run/host-services/ssh-auth.sock" \
-  		--mount "type=bind,source=${HOME}/.aws,target=/root/.aws" \
-  		--mount "type=bind,source=${HOME}/.ssh,target=/root/.ssh" \
-  		--mount "type=bind,source=${HOME}/.cdp,target=/root/.cdp" \
-  		--mount "type=bind,source=${HOME}/.azure,target=/root/.azure" \
-  		--mount "type=bind,source=${HOME}/.kube,target=/root/.kube" \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
-		--volume /var/lib/ansible:/ansible
+		--volume "${HOME}/src/edu_ansible":/ansible \
+		--mount type=bind,src=/run/host-services/ssh-auth.sock,target=/run/host-services/ssh-auth.sock \
+		--env SSH_AUTH_SOCK="/run/host-services/ssh-auth.sock" \
+		--mount "type=bind,source=${HOME}/.ssh,target=/root/.ssh" \
+		--mount "type=bind,source=${HOME}/.aws,target=/root/.aws" \
+		--mount "type=bind,source=${HOME}/.azure,target=/root/.azure" \
+		--mount "type=bind,source=${HOME}/.cdp,target=/root/.cdp" \
+		--mount "type=bind,source=${HOME}/.kube,target=/root/.kube" \
 		--publish 9921:22 \
 		--publish 3000:3000 \
 		wmdailey/ansible:latest
@@ -242,7 +267,6 @@ function runCentOS() {
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname "centos.cloudair.lan" \
-		--ip 172.18.0.3  \
 		--restart unless-stopped \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
 		--publish 9903:22 \
@@ -258,7 +282,6 @@ function runDesktop() {
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname desktop.cloudair.lan \
-		--ip 172.18.0.7 \
 		--restart unless-stopped \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
 		--env VNC_PASSWORD="BadPass%1" \
@@ -300,7 +323,6 @@ function runFreeipa() {
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname "freeipa.cloudair.lan" \
-		--ip 172.18.0.31 \
 		--restart unless-stopped \
 		--sysctl net.ipv6.conf.all.disable_ipv6=0 \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
@@ -320,7 +342,6 @@ function runKeycloak() {
 		--shm-size=1gb \
                 --network cloudair-bridge \
                 --hostname "keycloak.cloudair.lan" \
-                --ip 172.18.0.33 \
 		-e KEYCLOAK_USER=admin \
 		-e KEYCLOAK_PASSWORD=BadPass%1 \
 		--restart unless-stopped \
@@ -340,7 +361,6 @@ function runJenkins() {
 		--shm-size=1gb \
 		--network cloudair-bridge \
 		--hostname "jenkins.cloudair.lan" \
-		--ip 172.18.0.23 \
 		--restart unless-stopped \
 		--volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
 		--publish 9923:22 \
@@ -573,6 +593,7 @@ callInclude
 
 # Run checks
 checkSudo
+checkDocker
 
 # Run option
 runOption
