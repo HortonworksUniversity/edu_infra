@@ -21,8 +21,6 @@ LABEL summary="$SUMMARY" \
       name="centos/postgresql-10-centos7" \
       version="10" 
 
-# Pull in rpm for 9.6
-# RUN rpm -Uvh http://yum.postgresql.org/9.6/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
 # Pull in rpm for 10 
 RUN yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
 

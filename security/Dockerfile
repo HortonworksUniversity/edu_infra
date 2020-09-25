@@ -7,11 +7,13 @@
 # OF ANY KIND, either express or implied.
 
 FROM wmdailey/python:latest
-MAINTAINER WKD 
 
-# Install repos and update 
-RUN yum install -y epel-release  
-# System packages 
+# Labels
+LABEL maintainer="William Dailey <wdailey@cloudera.com>"
+LABEL org.label-schema.description="Centos 7 image with security packages"
+LABEL org.label-schema.version="Centos 7.8 Security"
+
+# Install security packages 
 RUN yum install -y \
 	adcli \
 	authconfig \
@@ -27,13 +29,13 @@ RUN yum install -y \
 	sssd \
 	sssd-ad \
 	sssd-krb5 \
-	sssd-tools 
-RUN yum update -y && yum clean all
+	sssd-tools && \
+	yum update -y && yum clean all
 
 # System configure
 RUN systemctl enable ntpd 
 
-# Configure pki
+# Configure pki in support of HDP ssl
 RUN mkdir -p /etc/pki/ca-trust/source/anchors
 ADD pki/ldap-cert.pem /etc/pki/ca-trust/source/anchors/hortonworks-net.crt
 ADD pki/ldap-cert.pem /etc/openldap/certs/ldap-cert.pem
@@ -43,9 +45,5 @@ RUN update-ca-trust force-enable
 RUN update-ca-trust extact
 RUN update-ca-trust check
 
-# Add resolv.conf file to be copied over after start up
-ADD conf/resolv.conf /etc/resolv.conf.override
-ADD sbin/local-host-config.sh /usr/local/sbin/local-host-config.sh
-
-# Add Kerberos Config
+# Add Kerberos Config in support of HDP KDC
 ADD conf/krb5.conf /etc/krb5.conf

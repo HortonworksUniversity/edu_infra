@@ -7,38 +7,38 @@
 # OF ANY KIND, either express or implied.
 
 FROM wmdailey/centos-base:latest
-MAINTAINER WKD
 
-# Install supporting libraries for python2.7. 
-# RUN rpm -Uvh http://mirror.centos.org/centos/7/os/x86_64/Packages/zlib-1.2.7-18.el7.x86_64.rpm
+# Labels
+LABEL maintainer="William Dailey <wdailey@cloudera.com>"
+LABEL org.label-schema.description="Centos 7 image with python 3"
+LABEL org.label-schema.version="Centos 7 Python 3.6"
 
-# The gcc compilier and python-devel are needed for Ambari Metrics
+# Variables
+ENV PYTHON_VER=3.7.9
+
+# Install Developer packages
+# The gcc compilier and python-devel are required to install python 
+# openldap-devel required for pyldap
 RUN yum install -y \
 	bzip2-devel \
 	gcc \
     	hostname \
+	libffi-devel \
+	openldap-devel \
 	openssl-devel \
 	python-devel \
     	sqlite-devel \
+	which \
 	xz-libs \
 	zlib \
 	zlib-devel
 
-# Install python2.7
-RUN cd /tmp && \
-    wget https://www.python.org/ftp/python/2.7.8/Python-2.7.8.tgz && \
-    tar xvfz Python-2.7.8.tgz && \
-    cd Python-2.7.8 && \
-    ./configure --prefix=/usr/local && \
-    make && \
-    make altinstall
-
-# Install setuptools + pip
-RUN cd /tmp && \
-    wget --no-check-certificate https://pypi.python.org/packages/source/s/setuptools/setuptools-1.4.2.tar.gz && \
-    tar -xvf setuptools-1.4.2.tar.gz && \
-    cd setuptools-1.4.2 && \
-    python2.7 setup.py install && \
-    yum install -y python-pip && \
-    yum update && yum clean all && \
-    pip install virtualenv
+# Install python
+RUN cd /usr/src && \
+	wget https://www.python.org/ftp/python/$PYTHON_VER/Python-$PYTHON_VER.tgz && \
+	tar xvfz Python-$PYTHON_VER.tgz && \
+	cd Python-$PYTHON_VER && \
+	./configure --prefix=/usr/local --enable-optimizations && \
+	make altinstall
+RUN rm /usr/src/Python-$PYTHON_VER.tgz && \
+	/usr/local/bin/python3.7 -m pip install --upgrade pip
