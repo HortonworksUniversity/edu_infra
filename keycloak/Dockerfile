@@ -31,10 +31,10 @@ ADD cli /opt/keycloak/cli
 
 # Connect to RDBMS PostgreSQL
 ADD databases/change-database.sh /opt/keycloak/bin/change-database.sh
-RUN mkdir -p /var/lib/keycloak/modules/system/layers/keycloak/org/postgresql/jdbc/main && \
-        cd /var/lib/keycloak/modules/system/layers/keycloak/org/postgresql/jdbc/main && \
+RUN mkdir -p /var/lib/keycloak/modules/system/layers/base/org/postgresql/jdbc/main && \
+        cd /var/lib/keycloak/modules/system/layers/base/org/postgresql/jdbc/main && \
         ln -s /usr/share/java/postgresql-jdbc.jar postgresql-jdbc.jar
-ADD databases/postgres/module.xml /var/lib/keycloak/modules/system/layers/keycloak/org/postgresql/jdbc/main/
+ADD databases/postgres/module.xml /var/lib/keycloak/modules/system/layers/base/org/postgresql/jdbc/main/
     
 ADD sbin/docker-entrypoint.sh /opt/keycloak/
 
