@@ -101,6 +101,11 @@ RUN mkdir /usr/java && ln -s /usr/lib/jvm/java /usr/java/default
 ENV JAVA_HOME /usr/java/default
 ENV PATH $PATH:$JAVA_HOME/bin
 
+# Install PostgreSQL 10
+RUN yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm  && \
+	RUN yum install -y postgresql10 && \
+        yum update -y && yum clean all
+
 # Install PostgreSQL JDBC
 RUN mkdir -p /usr/share/java
 ADD https://jdbc.postgresql.org/download/postgresql-42.2.12.jar /usr/share/java/postgresql-42.2.12.jar

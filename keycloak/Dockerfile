@@ -44,6 +44,7 @@ ADD sbin/docker-entrypoint.sh /opt/keycloak/
 # making it easier to use volumes (no permission issues)
 RUN groupadd -r keycloak && \
 useradd -r -g keycloak -m -d /opt/keycloak -s /sbin/nologin -c "keycloak user" keycloak && \
+usermod -aG wheel keycloak && \
 chown -R keycloak:keycloak /opt/keycloak-$KEYCLOAK_VERSION && \
 chmod 700 /opt/keycloak-$KEYCLOAK_VERSION/standalone
 
