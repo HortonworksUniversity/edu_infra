@@ -30,9 +30,11 @@ ln -s keycloak-$KEYCLOAK_VERSION keycloak
 ADD cli /opt/keycloak/cli
 
 # Connect to RDBMS PostgreSQL
-#ADD databases/change-database.sh /opt/keycloak/bin/change-database.sh
-#RUN mkdir -p /opt/keycloak/modules/system/layers/base/org/postgresql/jdbc/main; cd /opt/keycloak/modules/system/layers/base/org/postgresql/jdbc/main; curl -L http://central.maven.org/maven2/org/postgresql/postgresql/$JDBC_POSTGRES_VERSION/postgresql-$JDBC_POSTGRES_VERSION.jar > postgres-jdbc.jar
-#ADD databases/postgres/module.xml /opt/keycloak/modules/system/layers/base/org/postgresql/jdbc/main
+ADD databases/change-database.sh /opt/keycloak/bin/change-database.sh
+RUN mkdir -p /var/lib/keycloak/modules/system/layers/keycloak/org/postgresql/jdbc/main && \
+        cd /var/lib/keycloak/modules/system/layers/keycloak/org/postgresql/jdbc/main && \
+        ln -s /usr/share/java/postgresql-jdbc.jar postgresql-jdbc.jar
+ADD databases/postgres/module.xml /var/lib/keycloak/modules/system/layers/keycloak/org/postgresql/jdbc/main/
     
 ADD sbin/docker-entrypoint.sh /opt/keycloak/
 
@@ -41,7 +43,7 @@ ADD sbin/docker-entrypoint.sh /opt/keycloak/
 # so there is a high chance that this ID will be equal to the current user
 # making it easier to use volumes (no permission issues)
 RUN groupadd -r keycloak && \
-useradd -r -g keycloak -m -d /var/lib/keycloak -s /sbin/nologin -c "keycloak user" keycloak && \
+useradd -r -g keycloak -m -d /opt/keycloak -s /sbin/nologin -c "keycloak user" keycloak && \
 chown -R keycloak:keycloak /opt/keycloak-$KEYCLOAK_VERSION && \
 chmod 700 /opt/keycloak-$KEYCLOAK_VERSION/standalone
 
