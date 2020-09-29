@@ -20,8 +20,9 @@ LABEL org.label-schema.description="PostgreSQL RDBMS to support applications"
 LABEL org.label-schema.version="PostgreSQL v10"
 
 # Install PostgreSQL 10 
-RUN yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm && \
-	yum install -y postgresql10 postgresql10-server && \
+# Uncomment if building standalone
+# RUN yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm && \
+RUN	yum install -y postgresql10 postgresql10-server && \
 	yum update -y && yum clean all 
 
 # Configure init scripts

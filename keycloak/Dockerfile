@@ -1,10 +1,16 @@
 FROM wmdailey/security:latest
 MAINTAINER WKD
 
+# Variables
 ENV KEYCLOAK_VERSION 11.0.2
 ARG KEYCLOAK_DIST=https://downloads.jboss.org/keycloak/$KEYCLOAK_VERSION/keycloak-$KEYCLOAK_VERSION.tar.gz
 ARG KEYCLOAK_ADMIN 
 ARG KEYCLOAK_PASSWORD 
+ENV DB_VENDOR
+ENV DB_ADDR
+ENV DB_DATABASE
+ENV DB_USER
+ENV DB_PASSWORD
 
 # Enables signals getting passed from startup script to JVM
 # ensuring clean shutdown when container is stopped.
@@ -26,7 +32,7 @@ ln -s keycloak-$KEYCLOAK_VERSION keycloak
 # Systemd
 #ADD init/keycloak.service /etc/systemd/system/keycloak.service 
 #RUN systemctl enable keycloak
-
+ 
 ADD cli /opt/keycloak/cli
 
 # Connect to RDBMS PostgreSQL

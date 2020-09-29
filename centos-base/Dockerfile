@@ -88,12 +88,6 @@ ADD conf/99-hadoop.conf /etc/security/limits.d/99-hadoop.conf
 RUN localedef --no-archive -i en_US -f UTF-8 en_US.UTF-8
 ENV LANG en_US.UTF-8
 
-# Setup the /etc/hosts file for all hosts on the network
-# This is a cheesy work around to docker run --add-host
-COPY conf/hosts /usr/local/hosts
-COPY sbin/rc.local /etc/rc.d/rc.local
-RUN chmod 755 /etc/rc.d/rc.local
-
 # Install OpenJava jre and jdk 
 RUN yum install -y java-1.8.0-openjdk java-1.8.0-openjdk-devel && \
 	yum update -y && yum clean all
@@ -103,7 +97,7 @@ ENV PATH $PATH:$JAVA_HOME/bin
 
 # Install PostgreSQL 10
 RUN yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm  && \
-	RUN yum install -y postgresql10 && \
+	yum install -y postgresql10 && \
         yum update -y && yum clean all
 
 # Install PostgreSQL JDBC
