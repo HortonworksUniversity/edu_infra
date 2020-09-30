@@ -8,7 +8,7 @@ Before=postgresql-10.service
 Type=oneshot
 
 Environment=PGDATA=/var/lib/pgsql/10/data/
-ExecStart=/usr/pgsql-10/bin/postgresql-10-setup initdb
+ExecStart=/usr/local/sbin/setup-postgresql.sh
  
 [Install]
 WantedBy=multi-user.target

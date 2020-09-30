@@ -1,6 +1,6 @@
 [Unit]
 Description=Init PostgreSQL 10 database server
-After=postgresql-10.service
+After=postgresql-db.service
 
 [Service]
 Type=oneshot
@@ -8,7 +8,7 @@ Type=oneshot
 User=postgres
 Group=postgres
 
-ExecStart=/usr/local/sbin/create-databases.sh
+ExecStart=/usr/local/sbin/setup-keycloak.sh
  
 [Install]
 WantedBy=multi-user.target

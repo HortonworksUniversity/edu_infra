@@ -23,6 +23,8 @@
 NUMARGS=$#
 WRKDIR=/usr/local
 PGDATA=/var/lib/pgsql/10/data
+USERNAME=postgres
+DBNAME=postgres
 DATETIME=$(date +%Y%m%d%H%M)
 LOGFILE=${DIR}/log/setup-postgresql.log
 
@@ -33,31 +35,29 @@ function usage() {
 	exit 1
 }
 
-
-function initPostgreSQL() {
-# Run DB init
-	/usr/pgsql-10/bin/postgresql-10-setup initdb
-}
-
 function configPostgreSQL() {
-# Two ways of configuring Postgres. The first is a fast work around.
-# The second is configured to specific databases 
-	if [ -f ${WRKDIR}/conf/custom_postgresql.conf ]; then
-		cp ${WRKDIR}/conf/custom_postgresql.conf ${PGDATA}/postgresql.conf
-		cp ${WRKDIR}/conf/custom_pg_hba.conf ${PGDATA}/pg_hba.conf
-		chown postgres:postgres ${PGDATA}/postgresql.conf
-		chown postgres:postgres ${PGDATA}/pg_hba.conf
+# Configure for keycloak ssl
+	if [ -f ${WRKDIR}/conf/postgresql.conf ]; then
+		cp ${WRKDIR}/conf/postgresql.conf ${PGDATA}/postgresql.conf
+		cp ${WRKDIR}/pki/postgres.crt ${PGDATA}/server.crt
+		cp ${WRKDIR}/pki/postgres.key ${PGDATA}/server.key
+		chown -R postgres: ${PGDATA} 
+		chmod og-rwx ${PGDATA}/server.key
 	else
 		echo "ERROR: no configuration files in /usr/local/conf" >> ${LOGFILE}
 	fi
 }
 
-function statusPostgreSQL() {
-# Enable Postgresql
-	systemctl status postgresql-10.service &>> ${LOGFILE}
+function createDB() {
+        psql -v ON_ERROR_STOP=1 --username "${USERNAME}" --dbname "${DBNAME}" <<-EOSQL
+
+        CREATE USER keycloak WITH PASSWORD 'BadPass%1';
+        CREATE DATABASE keycloak WITH OWNER keycloak ENCODING 'UTF8' TEMPLATE template0;
+        GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak;
+
+EOSQL
 }
 
 # MAIN
-initPostgreSQL
 configPostgreSQL
-statusPostgreSQL
+createDB
